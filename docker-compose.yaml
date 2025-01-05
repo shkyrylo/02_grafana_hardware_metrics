@@ -1,0 +1,91 @@
+services:
+  nginx:
+    image: nginx:latest
+    depends_on:
+      - app
+      - grafana
+    ports:
+      - "80:80"
+      - "3000:3000"
+    volumes:
+      - ./config/nginx.conf:/etc/nginx/nginx.conf:ro
+
+  app:
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+    depends_on:
+      - mongo
+      - elasticsearch
+    environment:
+      - MONGO_USER=admin
+      - MONGO_PASSWORD=password
+      - MONGO_PORT=27017
+      - MONGO_DB=my_db
+    expose:
+      - "8080"
+
+  mongo:
+    image: mongo:5.0
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=password
+      - MONGO_INITDB_DATABASE=my_db
+    expose:
+      - "27017"
+
+  elasticsearch:
+    image: elasticsearch:8.17.0
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+    expose:
+      - "9200"
+
+  influxdb:
+    platform: linux/amd64
+    image: influxdb:1.8-alpine
+    environment:
+      - INFLUXDB_DB=telegraf
+      - INFLUXDB_HTTP_AUTH_ENABLED=false
+    volumes:
+      - influxdb_data:/var/lib/influxdb
+    expose:
+      - "8086"
+
+  grafana:
+    image: grafana/grafana:latest
+    depends_on:
+      - influxdb
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=password
+    volumes:
+      - grafana_data:/var/lib/grafana
+    expose:
+      - "3000"
+
+  telegraf:
+    image: telegraf:latest
+    depends_on:
+      - app
+    environment:
+      - MONGO_USER=admin
+      - MONGO_PASS=password
+      - MONGO_PORT=27017
+      - INFLUXDB_PORT=8086
+      - ELASTIC_PORT=9200
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./config/telegraf.conf:/etc/telegraf/telegraf.conf:ro
+
+volumes:
+  influxdb_data:
+  grafana_data:
+  es_data:
+
+networks:
+  default:
+    driver: bridge

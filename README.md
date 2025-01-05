@@ -1,3 +1,2 @@
-# 02_grafana_hardware_metrics
-
-123
+Короткій екскурс того як працює код:
+[![video](./video.mp4)]
