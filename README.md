@@ -1,2 +1,3 @@
 Короткій екскурс того як працює код:
-[![video](./video.mp4)]
+[![video](preview.png)(video.mp4)]
+```
